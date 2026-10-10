@@ -13,6 +13,7 @@ current_player = None
 already_buzzed = set()
 game_state = GameState.STOPPED
 buzz_queue = deque()
+game_channel = None
 
 async def handle_buzz(message: discord.Message):
     global reader, current_player, game_state
@@ -31,3 +32,26 @@ async def handle_buzz(message: discord.Message):
     elif game_state == GameState.WAITING:
         already_buzzed.add(buzzer_id)
         buzz_queue.append(buzzer_id)
+
+async def handle_incorrect_buzz():
+    global buzz_queue, game_state, current_player, game_channel
+
+    if not buzz_queue:
+        current_player = None
+        game_state = GameState.READING
+        return
+
+    current_player = buzz_queue.popleft()
+    await game_channel.send(f"<@{current_player}>")
+
+async def handle_withdraw(message: discord.Message):
+    global current_player
+
+    if message.author.id != current_player:
+        return
+
+    current_player = None
+    already_buzzed.remove(message.author.id)
+    
+    await message.channel.send(f"{message.author.mention} has withdrawn.")
+    await handle_incorrect_buzz()
