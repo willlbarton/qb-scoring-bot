@@ -19,6 +19,7 @@ class Game:
         self.buzz_queue = deque()
         self.game_channel = None
         self.scores_map = {}  # user_id: [#15s, #10s, #-5s, #0s]
+        self.player_names = {}
 
 
     async def handle_read(self, message: discord.Message):
@@ -30,6 +31,7 @@ class Game:
         self.tossup_number = 1
 
         await message.channel.send(f"{message.author.mention} is the reader.")
+        await message.channel.send("TU 1")
         self.game_state = GameState.READING
 
     async def handle_buzz(self, message: discord.Message):
@@ -37,6 +39,10 @@ class Game:
 
         if buzzer_id == self.reader or buzzer_id in self.already_buzzed:
             return
+
+        if self.game_state in (GameState.READING, GameState.WAITING):
+            self.scores_map.setdefault(buzzer_id, [0] * 4)
+            self.player_names[buzzer_id] = message.author.display_name
 
         if self.game_state == GameState.READING:
             self.game_state = GameState.WAITING
@@ -98,3 +104,46 @@ class Game:
         self.game_state = GameState.READING
 
         await self.game_channel.send(f"TU {self.tossup_number}")
+
+    async def handle_end(self, message):
+        if message.author.id != self.reader:
+            return
+
+        self.game_state = GameState.STOPPED
+        self.current_player = None
+        self.buzz_queue.clear()
+        await self.print_scores()
+
+    async def print_scores(self):
+        ranked = sorted(
+            self.scores_map.items(),
+            key=lambda item: 15 * item[1][0] + 10 * item[1][1] - 5 * item[1][2],
+            reverse=True,
+        )
+
+        entries = []
+        medals = ["🥇 ", "🥈 ", "🥉 "]
+        for position, (user_id, counts) in enumerate(ranked):
+            powers, tens, negs, zeros = counts
+            total = 15 * powers + 10 * tens - 5 * negs
+            name = discord.utils.escape_markdown(self.player_names.get(user_id, str(user_id)))
+            medal = medals[position] if position < 3 else ""
+            entry = f"{medal}**{name}**\n**{total}** ({powers}/{tens}/{negs})"
+            if zeros:
+                suffix = "buzz" if zeros == 1 else "buzzes"
+                entry += f" ({zeros} no penalty {suffix})"
+            entries.append(entry)
+
+        # Keep each embed below Discord's description length limit.
+        pages = []
+        page = ""
+        for entry in entries:
+            if len(page) + len(entry) + 2 > 4000:
+                pages.append(page)
+                page = ""
+            page += ("\n\n" if page else "") + entry
+        pages.append(page or "No players recorded.")
+
+        for page in pages:
+            embed = discord.Embed(title="Scores", description=page, colour=0xF1C40F)
+            await self.game_channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
