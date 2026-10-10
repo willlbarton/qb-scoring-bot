@@ -7,51 +7,58 @@ class GameState(Enum):
     WAITING = auto()
     STOPPED = auto()
 
-tossup_number = 0
-reader = None
-current_player = None
-already_buzzed = set()
-game_state = GameState.STOPPED
-buzz_queue = deque()
-game_channel = None
+class Game:
+    def __init__(self):
+        self.tossup_number = 0
+        self.reader = None
+        self.current_player = None
+        self.already_buzzed = set()
+        self.game_state = GameState.STOPPED
+        self.buzz_queue = deque()
+        self.game_channel = None
 
-async def handle_buzz(message: discord.Message):
-    global reader, current_player, game_state
-    buzzer_id = message.author.id
+    async def handle_read(self, message: discord.Message):
+        if self.reader or self.game_state != GameState.STOPPED:
+            return
 
-    if buzzer_id == reader or buzzer_id in already_buzzed:
-        return
-    
-    if game_state == GameState.READING:
-        game_state = GameState.WAITING
-        current_player = buzzer_id
-        already_buzzed.add(buzzer_id)
+        self.reader = message.author.id
+        self.game_channel = message.channel
 
-        await message.channel.send(message.author.mention)
+        await message.channel.send(f"{message.author.mention} is the reader.")
+        self.game_state = GameState.READING
 
-    elif game_state == GameState.WAITING:
-        already_buzzed.add(buzzer_id)
-        buzz_queue.append(buzzer_id)
+    async def handle_buzz(self, message: discord.Message):
+        buzzer_id = message.author.id
 
-async def handle_incorrect_buzz():
-    global buzz_queue, game_state, current_player, game_channel
+        if buzzer_id == self.reader or buzzer_id in self.already_buzzed:
+            return
 
-    if not buzz_queue:
-        current_player = None
-        game_state = GameState.READING
-        return
+        if self.game_state == GameState.READING:
+            self.game_state = GameState.WAITING
+            self.current_player = buzzer_id
+            self.already_buzzed.add(buzzer_id)
 
-    current_player = buzz_queue.popleft()
-    await game_channel.send(f"<@{current_player}>")
+            await message.channel.send(message.author.mention)
 
-async def handle_withdraw(message: discord.Message):
-    global current_player
+        elif self.game_state == GameState.WAITING:
+            self.already_buzzed.add(buzzer_id)
+            self.buzz_queue.append(buzzer_id)
 
-    if message.author.id != current_player:
-        return
+    async def handle_incorrect_buzz(self):
+        if not self.buzz_queue:
+            self.current_player = None
+            self.game_state = GameState.READING
+            return
 
-    current_player = None
-    already_buzzed.remove(message.author.id)
-    
-    await message.channel.send(f"{message.author.mention} has withdrawn.")
-    await handle_incorrect_buzz()
+        self.current_player = self.buzz_queue.popleft()
+        await self.game_channel.send(f"<@{self.current_player}>")
+
+    async def handle_withdraw(self, message: discord.Message):
+        if message.author.id != self.current_player:
+            return
+
+        self.current_player = None
+        self.already_buzzed.remove(message.author.id)
+
+        await message.channel.send(f"{message.author.mention} has withdrawn.")
+        await self.handle_incorrect_buzz()
