@@ -1,0 +1,17 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local secrets (keep example configuration tracked)
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
