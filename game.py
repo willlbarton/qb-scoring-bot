@@ -68,10 +68,9 @@ class Game:
         if message.author.id != self.current_player:
             return
 
+        await message.channel.send(f"{message.author.mention} has withdrawn.")
         self.current_player = None
         self.already_buzzed.remove(message.author.id)
-
-        await message.channel.send(f"{message.author.mention} has withdrawn.")
         await self.handle_incorrect_buzz()
 
     async def handle_score(self, message: discord.Message):
@@ -145,5 +144,5 @@ class Game:
         pages.append(page or "No players recorded.")
 
         for page in pages:
-            embed = discord.Embed(title="Scores", description=page, colour=0xF1C40F)
+            embed = discord.Embed(title="Scores", description=page, colour=0xF0C311)
             await self.game_channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())

@@ -237,7 +237,7 @@ class BotTests(unittest.IsolatedAsyncioTestCase):
         await self.send("!end")
         embed = self.embeds()[0]
         self.assertEqual(embed.title, "Scores")
-        self.assertEqual(embed.colour.value, 0xF1C40F)
+        self.assertEqual(embed.colour.value, 0xF0C311)
         self.assertEqual(embed.description,
             "🥇 **Alice**\n**200** (7/10/1) (1 no penalty buzz)\n\n"
             "🥈 **Bob**\n**195** (9/6/0) (2 no penalty buzzes)\n\n"

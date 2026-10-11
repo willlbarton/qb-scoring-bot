@@ -27,9 +27,13 @@ async def on_message(message: discord.Message):
     if message.author.bot or message.guild is None:
         return
 
-    async with message_lock:
-        content = message.content.strip().lower()
+    content = message.content.strip().lower()
+    if content != "!read" and (
+        not game.game_channel or message.channel.id != game.game_channel.id
+    ):
+        return
 
+    async with message_lock:
         if content == "!read":
             if game.game_state == GameState.STOPPED:
                 game = Game()
