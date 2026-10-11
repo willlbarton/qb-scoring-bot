@@ -31,7 +31,7 @@ class Game:
         self.tossup_number = 1
 
         await message.channel.send(f"{message.author.mention} is the reader.")
-        await message.channel.send("TU 1")
+        await message.channel.send("**TU 1**")
         self.game_state = GameState.READING
 
     async def handle_buzz(self, message: discord.Message):
@@ -103,7 +103,7 @@ class Game:
         self.current_player = None
         self.game_state = GameState.READING
 
-        await self.game_channel.send(f"TU {self.tossup_number}")
+        await self.game_channel.send(f"**TU {self.tossup_number}**")
 
     async def handle_end(self, message):
         if message.author.id != self.reader:

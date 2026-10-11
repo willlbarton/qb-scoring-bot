@@ -42,7 +42,7 @@ async def on_message(message: discord.Message):
         if message.channel.id != game.game_channel.id:
             return
 
-        if content == "buzz":
+        if content == "buzz" or content == "bz":
             await game.handle_buzz(message)
 
         elif content in ("withdraw", "wd"):
